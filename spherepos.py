@@ -1,6 +1,15 @@
 import numpy as np
 
+
+def dot(v1,v2):
+    return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]
+
 class Spherepos(object):
+    """
+    A class to keep track of positions on a sphere. (or 3-d positions)
+
+    
+    """
     def __init__(self,coords,normed=True):
         if len(coords)==2:
             self.theta = coords[0]
@@ -65,4 +74,18 @@ class Spherepos(object):
         return (self.theta,self.phi)
 
     def angsep(self,pos2):
-        return np.arccos(np.dot(self.cart(),pos2.cart()))
+        return np.arccos(dot(self.cart(),pos2.cart()))
+
+    
+def rand_spherepos(n,mininc=0,maxinc=pi/2,randfn=None,fnarg=None):
+    if n==0:
+        return None
+    if randfn==None:
+        theta = (rand_inc(n,mininc=mininc,maxinc=maxinc)-pi/2)*sign(scipy.random.random(n)-0.5)+pi/2
+    else:
+        if fnarg==None:
+            theta = randfn(n)
+        else:
+            theta = randfn(n,fnarg)
+    phi = scipy.random.random(n)*2*pi-pi
+    return spherepos((theta,phi))
