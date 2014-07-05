@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.random as rand
 
 class Spherepos(object):
     """
@@ -50,6 +51,19 @@ class Spherepos(object):
     def angsep(self,pos2):
         assert type(pos2) == type(self)
         return np.arccos(np.dot(self.cart(),pos2.cart()))
+    
+def rand_inc(n,mininc=0,maxinc=pi/2):
+    umax = np.cos(mininc)
+    umin = np.cos(maxinc)
+    u = rand.random(size=n)*(umax-umin) + umin
+    return np.arccos(u)
+    #return np.arcsin(rand_sini(n,xmin=np.sin(mininc),xmax=np.sin(maxinc)))
+
+def rand_sini(n,xmin=0,xmax=1):
+    rmax = 1-np.sqrt(1-xmax**2)
+    rmin = 1-np.sqrt(1-xmin**2)
+    r = scipy.random.random(n)*(rmax-rmin)+rmin
+    return np.sqrt(1-(1-r)**2)
 
     
 def rand_spherepos(n,mininc=0,maxinc=pi/2,randfn=None,fnarg=None):
