@@ -1,23 +1,22 @@
 import numpy as np
 
-
-def dot(v1,v2):
-    return v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2]
-
 class Spherepos(object):
     """
     A class to keep track of positions on a sphere. (or 3-d positions)
 
-    
+    Initialized with either [x,y,z] or [theta,phi].
+
     """
     def __init__(self,coords,normed=True):
         if len(coords)==2:
+            #spherical coordinates passed
             self.theta = coords[0]
             self.phi = coords[1]
             self.x = np.sin(self.theta)*np.cos(self.phi)
             self.y = np.sin(self.theta)*np.sin(self.phi)
             self.z = np.cos(self.theta)
         elif len(coords)==3:
+            #cartesian coordinates passed.
             self.x = coords[0]
             self.y = coords[1]
             self.z = coords[2]
@@ -30,32 +29,7 @@ class Spherepos(object):
             self.theta = np.arccos(self.z/sqrt(self.x**2+self.y**2+self.z**2))
             self.phi = np.arctan2(self.y,self.x)
 
-    def __getitem__(self,inds):
-        return spherepos((self.theta[inds],self.phi[inds]))
-
-    def __len__(self):
-        return len(self.theta)
-
-    def __call__(self):
-        return self
-
-    def __add__(self,pos2):
-        if pos2==None and self != None:
-            return self
-        if self==None and pos2 != None:
-            return pos2
-        if self==None and pos2==None:
-            return None
-        self.theta = np.concatenate((self.theta,pos2.theta))
-        self.phi = np.concatenate((self.phi,pos2.phi))
-        self.x = np.concatenate((self.x,pos2.x))
-        self.y = np.concatenate((self.y,pos2.y))
-        self.z = np.concatenate((self.z,pos2.z))
-        return self
-
     def transform(self,th,ph):
-        if self==None:
-            return None
         th = inc; ph = phi
         newaxis = Spherepos((th,ph))
         (x,y,z) = newaxis.cart()
@@ -74,7 +48,8 @@ class Spherepos(object):
         return (self.theta,self.phi)
 
     def angsep(self,pos2):
-        return np.arccos(dot(self.cart(),pos2.cart()))
+        assert type(pos2) == type(self)
+        return np.arccos(np.dot(self.cart(),pos2.cart()))
 
     
 def rand_spherepos(n,mininc=0,maxinc=pi/2,randfn=None,fnarg=None):
