@@ -52,7 +52,7 @@ class Spherepos(object):
         assert type(pos2) == type(self)
         return np.arccos(np.dot(self.cart(),pos2.cart()))
     
-def rand_inc(n,mininc=0,maxinc=pi/2):
+def rand_inc(n,mininc=0,maxinc=np.pi/2):
     umax = np.cos(mininc)
     umin = np.cos(maxinc)
     u = rand.random(size=n)*(umax-umin) + umin
@@ -66,15 +66,15 @@ def rand_sini(n,xmin=0,xmax=1):
     return np.sqrt(1-(1-r)**2)
 
     
-def rand_spherepos(n,mininc=0,maxinc=pi/2,randfn=None,fnarg=None):
+def rand_spherepos(n,mininc=0,maxinc=np.pi/2,randfn=None,fnarg=None):
     if n==0:
         return None
     if randfn==None:
-        theta = (rand_inc(n,mininc=mininc,maxinc=maxinc)-pi/2)*sign(scipy.random.random(n)-0.5)+pi/2
+        theta = (rand_inc(n,mininc=mininc,maxinc=maxinc)-pi/2)*np.sign(rand..random(n)-0.5)+np.pi/2
     else:
         if fnarg==None:
             theta = randfn(n)
         else:
             theta = randfn(n,fnarg)
-    phi = scipy.random.random(n)*2*pi-pi
+    phi = rand.random(n)*2*np.pi-np.pi
     return spherepos((theta,phi))
