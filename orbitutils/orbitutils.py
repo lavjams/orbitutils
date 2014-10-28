@@ -1,9 +1,12 @@
-""" Utilities related to orbits.  i.e. solving Kepler's equations. """
+from __future__ import division,print_function
 
 from numpy import *
 import inclination as inc
 from scipy.optimize import newton
 from scipy.interpolate import UnivariateSpline as interpolate
+import pkg_resources
+
+import numpy as np
 from scipy.interpolate import LinearNDInterpolator as interpnd
 from scipy.interpolate import interp2d
 from progressbar import Percentage,Bar,RotatingMarker,ETA,ProgressBar
@@ -14,23 +17,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import plotutils as plu
 
-DATAFOLDER = os.environ['ASTROUTIL_DATADIR'] #'/Users/tdm/Dropbox/astroutil/data'
-
-Es = loadtxt('%s/orbits/Etable.txt' % DATAFOLDER)
-eccs = loadtxt('%s/orbits/Etable_eccs.txt' % DATAFOLDER)
-Ms = loadtxt('%s/orbits/Etable_Ms.txt' % DATAFOLDER)
-ECCS,MS = meshgrid(eccs,Ms)
-points = array([MS.ravel(),ECCS.ravel()]).T
-EFN = interpnd(points,Es.ravel())
-
-def Efn(Ms,eccs):
-    """works for -2pi < Ms < 2pi, e <= 0.97"""
-    Ms = atleast_1d(Ms)
-    eccs = atleast_1d(eccs)
-    unit = floor(Ms / (2*pi))
-    Es = EFN((Ms % (2*pi)),eccs)
-    Es += unit*(2*pi)
-    return Es
+from .kepler import Efn
 
 def semimajor(P,mstar=1):
     return ((P*DAY/2/pi)**2*G*mstar*MSUN)**(1./3)/AU
@@ -335,78 +322,3 @@ class BinaryGrid(OrbitPopulation):
         #return interp
         return mbins,Pbins,pctiles,ns
             
-
-def calculate_eccentric_anomaly(mean_anomaly, eccentricity):
-
-    def f(eccentric_anomaly_guess):
-        return eccentric_anomaly_guess - eccentricity * math.sin(eccentric_anomaly_guess) - mean_anomaly
-
-    def f_prime(eccentric_anomaly_guess):
-        return 1 - eccentricity * math.cos(eccentric_anomaly_guess)
-
-    return newton(f, mean_anomaly, f_prime,maxiter=100)
-
-def calculate_eccentric_anomalies(eccentricity, mean_anomalies):
-    def _calculate_one_ecc_anom(mean_anomaly):
-        return calculate_eccentric_anomaly(mean_anomaly, eccentricity)
-
-    vectorized_calculate = vectorize(_calculate_one_ecc_anom)
-    return vectorized_calculate(mean_anomalies)
-
-def Egrid(decc=0.01,dM=0.01):
-    eccs = arange(0,0.98,decc)
-    Ms = arange(0,2*pi,dM)
-    Es = zeros((len(Ms),len(eccs)))
-    i=0
-    widgets = ['calculating table: ',Percentage(),' ',Bar(marker=RotatingMarker()),' ',ETA()]
-    pbar = ProgressBar(widgets=widgets,maxval=len(eccs))
-    for e in eccs:
-        Es[:,i] = calculate_eccentric_anomalies(e,Ms)
-        i+=1
-        pbar.update(i)
-    pbar.finish()
-    Ms,eccs = meshgrid(Ms,eccs)
-    return Ms.ravel(),eccs.ravel(),Es.ravel()
-
-
-def writeEtable():
-    ECCS = linspace(0,0.97,200)
-    Ms = linspace(0,2*pi,500)
-    Es = zeros((len(Ms),len(ECCS)))
-    i=0
-    widgets = ['calculating table: ',Percentage(),' ',Bar(marker=RotatingMarker()),' ',ETA()]
-    pbar = ProgressBar(widgets=widgets,maxval=len(ECCS))
-    pbar.start()
-    for e in ECCS:
-        Es[:,i] = calculate_eccentric_anomalies(e,Ms)
-        i+=1
-        pbar.update(i)
-    pbar.finish()
-    savetxt('%s/orbits/Etable.txt' % DATAFOLDER,Es)
-    savetxt('%s/orbits/Etable_eccs.txt' % DATAFOLDER,ECCS)
-    savetxt('%s/orbits/Etable_Ms.txt' % DATAFOLDER,Ms)
-
-def Equickdata():
-    Es = loadtxt('%s/orbits/Etable.txt' % DATAFOLDER)
-    eccs = loadtxt('%s/orbits/Etable_eccs.txt' % DATAFOLDER)
-    Ms = loadtxt('%s/orbits/Etable_Ms.txt' % DATAFOLDER)    
-    return Es,eccs,Ms
-    
-def Equick(M,ecc,data=None):
-    M = atleast_1d(M)
-    ineg = where(M<0)
-    M %= (2*pi)
-    ecc = atleast_1d(ecc)
-    if data is None:
-        Es = loadtxt('%s/orbits/Etable.txt' % DATAFOLDER)
-        eccs = loadtxt('%s/orbits/Etable_eccs.txt' % DATAFOLDER)
-        Ms = loadtxt('%s/orbits/Etable_Ms.txt' % DATAFOLDER)
-    else:
-        Es,eccs,Ms = data
-    iM = digitize(M,Ms)
-    iecc = digitize(ecc,eccs)
-    Eouts = Es[iM-1,iecc-1]
-    Eouts[ineg] -= 2*pi  #a bit hack-y; fix eventually? --- this makes negative input negative output
-    return Eouts
-
-
