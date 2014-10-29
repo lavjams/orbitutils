@@ -22,11 +22,12 @@ from astropy import constants as const
 MSUN = const.M_sun.cgs.value
 AU = const.au.cgs.value
 DAY = 86400
+G = const.G.cgs.value
 
 from .kepler import Efn
 
 def semimajor(P,mstar=1):
-    return ((P*DAY/2/pi)**2*G*mstar*MSUN)**(1./3)/AU
+    return ((P*DAY/2/np.pi)**2*G*mstar*MSUN)**(1./3)/AU
 
 def random_spherepos(n):
     """returns SkyCoord object
@@ -46,13 +47,13 @@ def orbitproject(x,y,inc,phi=0,psi=0):
     final x-y axes
     """
 
-    x2 = x*cos(phi) + y*sin(phi)
-    y2 = -x*sin(phi) + y*cos(phi)
-    z2 = y2*sin(inc)
-    y2 = y2*cos(inc)
+    x2 = x*np.cos(phi) + y*np.sin(phi)
+    y2 = -x*np.sin(phi) + y*np.cos(phi)
+    z2 = y2*np.sin(inc)
+    y2 = y2*np.cos(inc)
 
-    xf = x2*cos(psi) - y2*sin(psi)
-    yf = x2*sin(psi) + y2*cos(psi)
+    xf = x2*np.cos(psi) - y2*np.sin(psi)
+    yf = x2*np.sin(psi) + y2*np.cos(psi)
 
     return (xf,yf,z2)
 
@@ -64,20 +65,17 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
 
     Es = Efn(Ms,eccs)
     
-    rs = semimajors*(1-eccs*cos(Es))
-    nus = 2 * arctan2(sqrt(1+eccs)*sin(Es/2),sqrt(1-eccs)*cos(Es/2))
-    #rs = semimajors*(1-eccs**2)/(1+eccs*cos(nus))
+    rs = semimajors*(1-eccs*np.cos(Es))
+    nus = 2 * np.arctan2(np.sqrt(1+eccs)*np.sin(Es/2),np.sqrt(1-eccs)*np.cos(Es/2))
 
-    xs = semimajors*(cos(Es) - eccs)         #AU
-    ys = semimajors*sqrt(1-eccs**2)*sin(Es)  #AU
+    xs = semimajors*(np.cos(Es) - eccs)         #AU
+    ys = semimajors*np.sqrt(1-eccs**2)*np.sin(Es)  #AU
 
-    Edots = sqrt(G*mreds*MSUN/(semimajors*AU)**3)/(1-eccs*cos(Es))
-    xdots = -semimajors*AU*sin(Es)*Edots/1e5  #km/s
-    ydots = semimajors*AU*sqrt(1-eccs**2)*cos(Es)*Edots/1e5 # km/s
+    Edots = np.sqrt(G*mreds*MSUN/(semimajors*AU)**3)/(1-eccs*np.cos(Es))
+    xdots = -semimajors*AU*np.sin(Es)*Edots/1e5  #km/s
+    ydots = semimajors*AU*np.sqrt(1-eccs**2)*np.cos(Es)*Edots/1e5 # km/s
         
-    n = size(xs)
-
-    #orbpos = inc.spherepos((rs*cos(nus),rs*sin(nus),zeros(N)),normed=False)
+    n = np.size(xs)
 
     #orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
     orbpos = SkyCoord(xs,ys,0,representation='cartesian')
@@ -85,7 +83,7 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     orbvel = SkyCoord(xdots,ydots,0,representation='cartesian')
     if obspos is None:
         #obspos = inc.rand_spherepos(n) #observer position
-        obspos = rand_spherepos(n) #observer position
+        obspos = random_spherepos(n) #observer position
     if type(obspos) == type((1,2,3)):
         #obspos = inc.spherepos((obspos[0],obspos[1],obspos[2]))
         obspos = SkyCoord(obspos[0],obspos[1],obspos[2],
@@ -93,11 +91,9 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     if not hasattr(obspos,'theta'):
         obspos = obspos.represent_as('physicsspherical')
         
-    #orbpos_proj = orbpos.transform(obspos.theta,obspos.phi)
-    #orbvel_proj = orbvel.transform(obspos.theta,obspos.phi)
     
     #random orientation of the sky 'x-y' coordinates
-    psi = rand.random(n)*2*pi  
+    psi = rand.random(n)*2*np.pi  
 
     x,y,z = orbitproject(orbpos.x,orbpos.y,obspos.theta,obspos.phi,psi)
     vx,vy,vz = orbitproject(orbvel.x,orbvel.y,obspos.theta,obspos.phi,psi)
@@ -145,11 +141,11 @@ class TripleOrbitPopulation(object):
 class OrbitPopulation(object):
     def __init__(self,M1s,M2s,Ps,eccs=0,n=None,
                  mean_anomalies=None,obsx=None,obsy=None,obsz=None):
-        M1s = atleast_1d(M1s)
-        M2s = atleast_1d(M2s)
+        M1s = np.atleast_1d(M1s)
+        M2s = np.atleast_1d(M2s)
         if len(M1s)==1 and len(M2s)==1:
-            M1s = ones(n)*M1s
-            M2s = ones(n)*M2s
+            M1s = np.ones(n)*M1s
+            M2s = np.ones(n)*M2s
 
         self.M1s = M1s
         self.M2s = M2s
@@ -159,13 +155,13 @@ class OrbitPopulation(object):
 
         self.N = n
 
-        if size(Ps)==1:
-            Ps = Ps*ones(n)
+        if np.size(Ps)==1:
+            Ps = Ps*np.ones(n)
 
         self.Ps = Ps
 
-        if size(eccs) == 1:
-            eccs = ones(n)*eccs
+        if np.size(eccs) == 1:
+            eccs = np.ones(n)*eccs
 
         self.eccs = eccs
 
@@ -175,7 +171,7 @@ class OrbitPopulation(object):
         self.mreds = mred
 
         if mean_anomalies is None:
-            Ms = rand.uniform(0,2*pi,size=n)
+            Ms = rand.uniform(0,2*np.pi,size=n)
         else:
             Ms = mean_anomalies
 
@@ -184,19 +180,19 @@ class OrbitPopulation(object):
         #coordinate system: all orbits here simulated in x-y plane.
         Es = Efn(Ms,eccs)
 
-        rs = semimajors*(1-eccs*cos(Es))
-        nus = 2 * arctan2(sqrt(1+eccs)*sin(Es/2),sqrt(1-eccs)*cos(Es/2))
+        rs = semimajors*(1-eccs*np.cos(Es))
+        nus = 2 * np.arctan2(np.sqrt(1+eccs)*np.sin(Es/2),np.sqrt(1-eccs)*np.cos(Es/2))
 
-        xs = semimajors*(cos(Es) - eccs)         #AU
-        ys = semimajors*sqrt(1-eccs**2)*sin(Es)  #AU
+        xs = semimajors*(np.cos(Es) - eccs)         #AU
+        ys = semimajors*np.sqrt(1-eccs**2)*np.sin(Es)  #AU
 
-        Edots = sqrt(G*mred*MSUN/(semimajors*AU)**3)/(1-eccs*cos(Es))
-        xdots = -semimajors*AU*sin(Es)*Edots/1e5  #km/s
-        ydots = semimajors*AU*sqrt(1-eccs**2)*cos(Es)*Edots/1e5 # km/s
+        Edots = np.sqrt(G*mred*MSUN/(semimajors*AU)**3)/(1-eccs*np.cos(Es))
+        xdots = -semimajors*AU*np.sin(Es)*Edots/1e5  #km/s
+        ydots = semimajors*AU*np.sqrt(1-eccs**2)*np.cos(Es)*Edots/1e5 # km/s
         
         #coordinates of random observers
         if obsx is None:
-            self.obspos = rand_spherepos(n)
+            self.obspos = random_spherepos(n)
             #self.obspos = inc.rand_spherepos(n) #observer position
         else:
             #self.obspos = inc.spherepos((obsx,obsy,obsz))
@@ -210,12 +206,12 @@ class OrbitPopulation(object):
         self.positions = positions
         self.velocities = velocities
         
-        self.x,self.y,self.z = positions
-        self.vx,self.vy,self.vz = velocities
+        #self.x,self.y,self.z = positions
+        #self.vx,self.vy,self.vz = velocities
 
-        self.Rsky = sqrt(self.positions.x**2 +
+        self.Rsky = np.sqrt(self.positions.x**2 +
                          self.positions.y**2) # on-sky separation, in projected AU
-        self.RVs = self.velocities.vz  #relative radial velocities
+        self.RVs = self.velocities.z  #relative radial velocities
 
         #velocities relative to center of mass
         self.RVs_com1 = self.RVs * (self.M2s / (self.M1s + self.M2s))
@@ -226,7 +222,7 @@ class OrbitPopulation(object):
         """
         dt *= DAY
 
-        mean_motions = sqrt(G*(self.mreds)*MSUN/(self.semimajors*AU)**3)
+        mean_motions = np.sqrt(G*(self.mreds)*MSUN/(self.semimajors*AU)**3)
         #print mean_motions * dt / (2*pi)
 
         newMs = self.Ms + mean_motions * dt
