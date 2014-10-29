@@ -1,29 +1,49 @@
 from __future__ import division,print_function
 
-from numpy import *
-import inclination as inc
+#import inclination as inc
 from scipy.optimize import newton
 from scipy.interpolate import UnivariateSpline as interpolate
 import pkg_resources
 
 import numpy as np
 from scipy.interpolate import LinearNDInterpolator as interpnd
-from scipy.interpolate import interp2d
-from progressbar import Percentage,Bar,RotatingMarker,ETA,ProgressBar
+
+from astropy.coordinates import SkyCoord,Angle
+
 import numpy.random as rand
-from consts import *
 import sys,re,os
 import numpy as np
 import matplotlib.pyplot as plt
 import plotutils as plu
+
+from astropy import units as u
+
+from astropy import constants as const
+MSUN = const.M_sun.cgs.value
+AU = const.au.cgs.value
+DAY = 86400
 
 from .kepler import Efn
 
 def semimajor(P,mstar=1):
     return ((P*DAY/2/pi)**2*G*mstar*MSUN)**(1./3)/AU
 
+def random_spherepos(n):
+    """returns SkyCoord object
+    """
+    signs = np.sign(rand.uniform(-1,1,size=n))
+    thetas = Angle(np.arccos(rand.uniform(size=n)*signs),unit=u.rad) #random b/w 0 and 180
+    phis = Angle(rand.uniform(0,2*np.pi,size=n),unit=u.rad)
+    c = SkyCoord(phis,thetas,1,representation='physicsspherical')
+    return c
+
 def orbitproject(x,y,inc,phi=0,psi=0):
-    """inc is polar angle on celestial sphere, phi is azimuthal, psi is orientation of final x-y axes
+    """
+
+    x,y are coordinates in z=0 plane (plane of the orbit)
+
+    observer is at (inc, phi) on celestial sphere; psi is orientation of
+    final x-y axes
     """
 
     x2 = x*cos(phi) + y*sin(phi)
@@ -38,6 +58,8 @@ def orbitproject(x,y,inc,phi=0,psi=0):
 
 def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     """returns positions in projected AU and velocities in km/s for given mean anomalies
+
+    returns positions and velocities as SkyCoord objects
     """
 
     Es = Efn(Ms,eccs)
@@ -56,13 +78,21 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     n = size(xs)
 
     #orbpos = inc.spherepos((rs*cos(nus),rs*sin(nus),zeros(N)),normed=False)
-    orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
-    orbvel = inc.spherepos((xdots,ydots,zeros(n)),normed=False)
-    if obspos is None:
-        obspos = inc.rand_spherepos(n) #observer position
-    if type(obspos) == type((1,2,3)):
-        obspos = inc.spherepos((obspos[0],obspos[1],obspos[2]))
 
+    #orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
+    orbpos = SkyCoord(xs,ys,0,representation='cartesian')
+    #orbvel = inc.spherepos((xdots,ydots,zeros(n)),normed=False)
+    orbvel = SkyCoord(xdots,ydots,0,representation='cartesian')
+    if obspos is None:
+        #obspos = inc.rand_spherepos(n) #observer position
+        obspos = rand_spherepos(n) #observer position
+    if type(obspos) == type((1,2,3)):
+        #obspos = inc.spherepos((obspos[0],obspos[1],obspos[2]))
+        obspos = SkyCoord(obspos[0],obspos[1],obspos[2],
+                          representation='cartesian').represent_as('physicsspherical')
+    if not hasattr(obspos,'theta'):
+        obspos = obspos.represent_as('physicsspherical')
+        
     #orbpos_proj = orbpos.transform(obspos.theta,obspos.phi)
     #orbvel_proj = orbvel.transform(obspos.theta,obspos.phi)
     
@@ -72,7 +102,9 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     x,y,z = orbitproject(orbpos.x,orbpos.y,obspos.theta,obspos.phi,psi)
     vx,vy,vz = orbitproject(orbvel.x,orbvel.y,obspos.theta,obspos.phi,psi)
 
-    return (x,y,z),(vx,vy,vz) #z is line of sight
+    
+    return (SkyCoord(x,y,z,representation='cartesian'),
+            SkyCoord(vx,vy,vz,representation='cartesian')) #z is line of sight
 
 class TripleOrbitPopulation(object):
     def __init__(self,M1s,M2s,M3s,Plong,Pshort,ecclong=0,eccshort=0,n=None,
@@ -149,11 +181,11 @@ class OrbitPopulation(object):
 
         self.Ms = Ms
 
+        #coordinate system: all orbits here simulated in x-y plane.
         Es = Efn(Ms,eccs)
 
         rs = semimajors*(1-eccs*cos(Es))
         nus = 2 * arctan2(sqrt(1+eccs)*sin(Es/2),sqrt(1-eccs)*cos(Es/2))
-        #rs = semimajors*(1-eccs**2)/(1+eccs*cos(nus))
 
         xs = semimajors*(cos(Es) - eccs)         #AU
         ys = semimajors*sqrt(1-eccs**2)*sin(Es)  #AU
@@ -162,30 +194,28 @@ class OrbitPopulation(object):
         xdots = -semimajors*AU*sin(Es)*Edots/1e5  #km/s
         ydots = semimajors*AU*sqrt(1-eccs**2)*cos(Es)*Edots/1e5 # km/s
         
-
-        #orbpos = inc.spherepos((rs*cos(nus),rs*sin(nus),zeros(N)),normed=False)
-        #self.orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
-        #self.orbvel = inc.spherepos((xdots,ydots,zeros(n)),normed=False)
-        if obsx is None: 
-            self.obspos = inc.rand_spherepos(n) #observer position
+        #coordinates of random observers
+        if obsx is None:
+            self.obspos = rand_spherepos(n)
+            #self.obspos = inc.rand_spherepos(n) #observer position
         else:
-            self.obspos = inc.spherepos((obsx,obsy,obsz))
+            #self.obspos = inc.spherepos((obsx,obsy,obsz))
+            self.obspos = SkyCoord(obsx,obsy,obsz,representation='cartesian')
 
-        #orbpos_proj = orbpos.transform(obspos.theta,obspos.phi)
-        #orbvel_proj = orbvel.transform(obspos.theta,obspos.phi)
-
-        #random orientation of the sky 'x-y' coordinates
-        #psi = rand.random(n)*2*pi  
 
         #get positions, velocities relative to M1
         positions,velocities = orbit_posvel(self.Ms,self.eccs,self.semimajors,self.mreds,
                                             self.obspos)
 
+        self.positions = positions
+        self.velocities = velocities
+        
         self.x,self.y,self.z = positions
         self.vx,self.vy,self.vz = velocities
 
-        self.Rsky = sqrt(self.x**2 + self.y**2) # on-sky separation, in projected AU
-        self.RVs = self.vz  #relative radial velocities
+        self.Rsky = sqrt(self.positions.x**2 +
+                         self.positions.y**2) # on-sky separation, in projected AU
+        self.RVs = self.velocities.vz  #relative radial velocities
 
         #velocities relative to center of mass
         self.RVs_com1 = self.RVs * (self.M2s / (self.M1s + self.M2s))
