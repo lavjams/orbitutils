@@ -6,6 +6,8 @@ import numpy.random as rand
 import sys,re,os
 import matplotlib.pyplot as plt
 
+import pandas as pd
+
 from plotutils import setfig
 
 from astropy import units as u
@@ -205,7 +207,6 @@ class TripleOrbitPopulation(object):
                                            obsx=obsx_short,obsy=obsy_short,obsz=obsz_short)
 
 
-
     @property
     def RV_1(self):
         """Instantaneous RV of star 1 with respect to system center-of-mass
@@ -249,8 +250,18 @@ class TripleOrbitPopulation(object):
         """
         return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1/(self.orbpop_long.M1 + self.orbpop_long.M2)) -\
             self.orbpop_short.dRV(dt) * (self.orbpop_short.M1/(self.orbpop_short.M1 + self.orbpop_short.M2))
-        
 
+    def save_hdf(self,filename,path=''):
+        self.orbpop_long.save_hdf(filename,'{}/long'.format(path))
+        self.orbpop_short.save_hdf(filename,'{}/short'.format(path))
+        
+            
+class TripleOrbitPopulation_FromH5(TripleOrbitPopulation):
+    def __init__(self,filename,path=''):
+        self.orbpop_long = OrbitPopulation_FromH5(filename,'{}/long'.format(path))
+        self.orbpop_short = OrbitPopulation_FromH5(filename,'{}/short'.format(path))
+        
+            
 class OrbitPopulation(object):
     def __init__(self,M1,M2,P,ecc=0,n=None,
                  mean_anomaly=None,obsx=None,obsy=None,obsz=None,
@@ -423,6 +434,36 @@ class OrbitPopulation(object):
         self.ts = ts
         return RVs
 
+    @property
+    def dataframe(self):
+        if not hasattr(self,'_dataframe'):
+            obspos = self.obspos.represent_as('cartesian')
+            obsx, obsy, obsz = (obspos.x,obspos.y,obspos.z)
+            df = pd.DataFrame({'M1':self.M1,
+                               'M2':self.M2,
+                               'P':self.P,
+                               'ecc':self.ecc,
+                               'mean_anomaly':self.M,
+                               'obsx':obsx,
+                               'obsy':obsy,
+                               'obsz':obsz})
+            self._dataframe = df
+        return self._dataframe
+            
+    
+    def save_hdf(self,filename,path=''):
+        """Saves all relevant data to .h5 file; so state can be restored.
+        """
+        self.dataframe.to_hdf(filename,'{}/df'.format(path))
+
+class OrbitPopulation_FromH5(OrbitPopulation):
+    def __init__(self,filename,path=''):
+        df = pd.read_hdf(filename,'{}/df'.format(path))
+        OrbitPopulation.__init__(self, df['M1'], df['M2'], df['P'],
+                                 ecc=df['ecc'], mean_anomaly=df['mean_anomaly'],
+                                 obsx=df['obsx'], obsy=df['obsy'], obsz=df['obsz']) 
+
+        
 class BinaryGrid(OrbitPopulation):
     def __init__(self, M1, qmin=0.1, qmax=1, Pmin=0.5, Pmax=365, N=1e5, logP=True, eccfn=None):
         """A grid of companions to primary, in mass ratio and period space.
