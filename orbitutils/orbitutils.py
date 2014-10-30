@@ -120,30 +120,26 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
         
     n = np.size(xs)
 
-    #orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
     orbpos = SkyCoord(xs,ys,0,representation='cartesian',unit='AU')
-    #orbvel = inc.spherepos((xdots,ydots,zeros(n)),normed=False)
     orbvel = SkyCoord(xdots,ydots,0,representation='cartesian',unit='km/s')
     if obspos is None:
-        #obspos = inc.rand_spherepos(n) #observer position
         obspos = random_spherepos(n) #observer position
     if type(obspos) == type((1,2,3)):
-        #obspos = inc.spherepos((obspos[0],obspos[1],obspos[2]))
         obspos = SkyCoord(obspos[0],obspos[1],obspos[2],
                           representation='cartesian').represent_as('physicsspherical')
-    if not hasattr(obspos,'theta'):
+
+    if not hasattr(obspos,'theta'): #if obspos not physics spherical, make it 
         obspos = obspos.represent_as('physicsspherical')
         
-    
     #random orientation of the sky 'x-y' coordinates
     psi = rand.random(n)*2*np.pi  
 
+    #transform positions and velocities into observer coordinates
     x,y,z = orbitproject(orbpos.x,orbpos.y,obspos.theta,obspos.phi,psi)
     vx,vy,vz = orbitproject(orbvel.x,orbvel.y,obspos.theta,obspos.phi,psi)
 
-    
     return (SkyCoord(x,y,z,representation='cartesian'),
-            SkyCoord(vx,vy,vz,representation='cartesian')) #z is line of sight
+            SkyCoord(vx,vy,vz,representation='cartesian')) 
 
 class TripleOrbitPopulation(object):
     def __init__(self,M1s,M2s,M3s,Plong,Pshort,ecclong=0,eccshort=0,n=None,
