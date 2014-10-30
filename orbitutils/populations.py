@@ -322,7 +322,13 @@ class OrbitPopulation(object):
                                'obsz':obsz})
             self._dataframe = df
         return self._dataframe
-            
+
+
+    def scatterplot(self,fig=None,figsize=(7,7),ms=0.5,**kwargs):
+        setfig(fig,figsize=figsize)
+        plt.plot(self.position.x.value,self.position.y.value,'o',ms=ms,**kwargs)
+        plt.xlabel('projected separation [AU]')
+        plt.ylabel('projected separation [AU]')
     
     def save_hdf(self,filename,path=''):
         """Saves all relevant data to .h5 file; so state can be restored.
