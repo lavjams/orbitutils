@@ -144,9 +144,47 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
 class TripleOrbitPopulation(object):
     def __init__(self,M1s,M2s,M3s,Plong,Pshort,ecclong=0,eccshort=0,n=None,
                  mean_anomalies_long=None,obsx_long=None,obsy_long=None,obsz_long=None,
-                 mean_anomalies_short=None,obsx_short=None,obsy_short=None,obsz_short=None):                 
+                 obspos_long=None,
+                 mean_anomalies_short=None,obsx_short=None,obsy_short=None,obsz_short=None,
+                 obspos_short=None):                 
         """Stars 2 and 3 orbit each other close (short orbit), far from star 1 (long orbit)
+
+        Object that defines a triple star system, with orbits calculated approximating
+        Pshort << Plong.
+
+        Parameters
+        ----------
+        M1s, M2s, M3s : float or array-like
+            Masses of stars.  Stars 2 and 3 are in a short orbit, far away from star 1.
+
+        Plong, Pshort : float or array-like
+            Orbital Periods.  Plong is orbital period of 2+3 and 1; Pshort is orbital
+            period of 2 and 3.
+
+        ecclong, eccshort : float or array-like, optional
+            Eccentricities.  Same story (long vs. short).  Default=0 (circular).
+
+        n : int, optional
+            Number of systems to simulate (if M1s, M2s, M3s aren't arrays of size > 1
+            already)
+
+        mean_anomalies_short, mean_anomalies_long : float or array_like, optional
+            Mean anomalies.  This is only passed if you need to "restore" a
+            particular specific configuration (i.e., a particular saved simulation).
+            If not provided, then randomized on (0, 2pi).
+
+        obsx_short, obsy_short, obsz_short : float or array_like, optional
+            "Observer" positions for the short orbit.
+
+        obsx_long, obsy_long, obsz_long : flot or array_like, optional
+            "Observer" positions for long orbit.
+
+        obspos_short, obspos_long : None or ``SkyCoord``
+            "Observer" positions for short and long, provided as ``SkyCoord`` objects.
         """
+        if Plong < Pshort:
+            Pshort,Plong = (Plong, Pshort)
+        
         self.orbpop_long = OrbitPopulation(M1s,M2s+M3s,Plong,eccs=ecclong,n=n,
                                            mean_anomalies=mean_anomalies_long,
                                            obsx=obsx_long,obsy=obsy_long,obsz=obsz_long)
