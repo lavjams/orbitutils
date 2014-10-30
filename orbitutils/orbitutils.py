@@ -140,18 +140,24 @@ class TripleOrbitPopulation(object):
 
 class OrbitPopulation(object):
     def __init__(self,M1s,M2s,Ps,eccs=0,n=None,
-                 mean_anomalies=None,obsx=None,obsy=None,obsz=None):
+                 mean_anomalies=None,obsx=None,obsy=None,obsz=None,
+                 obspos=None):
         M1s = np.atleast_1d(M1s)
         M2s = np.atleast_1d(M2s)
+        Ps = np.atleast_1d(Ps)
+
+        if n is None:
+            if len(M2s)==1:
+                n = len(Ps)
+            else:
+                n = len(M2s)
+
         if len(M1s)==1 and len(M2s)==1:
             M1s = np.ones(n)*M1s
             M2s = np.ones(n)*M2s
 
         self.M1s = M1s
         self.M2s = M2s
-
-        if n is None:
-            n = len(M2s)
 
         self.N = n
 
@@ -191,13 +197,14 @@ class OrbitPopulation(object):
         ydots = semimajors*AU*np.sqrt(1-eccs**2)*np.cos(Es)*Edots/1e5 # km/s
         
         #coordinates of random observers
-        if obsx is None:
-            self.obspos = random_spherepos(n)
-            #self.obspos = inc.rand_spherepos(n) #observer position
+        if obspos is None:
+            if obsx is None:
+                self.obspos = random_spherepos(n)
+            else:
+                self.obspos = SkyCoord(obsx,obsy,obsz,representation='cartesian')
         else:
-            #self.obspos = inc.spherepos((obsx,obsy,obsz))
-            self.obspos = SkyCoord(obsx,obsy,obsz,representation='cartesian')
-
+            self.obspos = obspos
+                            
 
         #get positions, velocities relative to M1
         positions,velocities = orbit_posvel(self.Ms,self.eccs,self.semimajors,self.mreds,
