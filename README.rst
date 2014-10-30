@@ -14,9 +14,7 @@ Installation
 
    $ pip install [--user] orbitutils
    
-Or clone the repository and install:
-
-::
+Or clone the repository and install::
 
     $ git clone https://github.com/timothydmorton/orbitutils.git
     $ cd orbitutils
@@ -58,24 +56,22 @@ and then read back in/restored as follows:
 
 Attribution
 -----------
-If you use this software for your research, please let me know (tim.morton@gmail.com).  Eventually there will be a publication to cite for this code specifically; until then, please cite my 2012 validation method paper:
+If you use this software for your research, please let me know (tim.morton@gmail.com).  Eventually there will be a publication to cite for this code specifically; until then, please cite my 2012 validation method paper::
 
-:: 
-
-@ARTICLE{2012ApJ...761....6M,
-   author = {{Morton}, T.~D.},
-    title = "{An Efficient Automated Validation Procedure for Exoplanet Transit Candidates}",
-  journal = {\apj},
-archivePrefix = "arXiv",
-   eprint = {1206.1568},
- primaryClass = "astro-ph.EP",
- keywords = {planetary systems, stars: statistics },
-     year = 2012,
-    month = dec,
-   volume = 761,
-      eid = {6},
-    pages = {6},
-      doi = {10.1088/0004-637X/761/1/6},
-   adsurl = {http://adsabs.harvard.edu/abs/2012ApJ...761....6M},
-  adsnote = {Provided by the SAO/NASA Astrophysics Data System}
-}
+   @ARTICLE{2012ApJ...761....6M,
+      author = {{Morton}, T.~D.},
+       title = "{An Efficient Automated Validation Procedure for Exoplanet Transit Candidates}",
+     journal = {\apj},
+   archivePrefix = "arXiv",
+      eprint = {1206.1568},
+    primaryClass = "astro-ph.EP",
+    keywords = {planetary systems, stars: statistics },
+        year = 2012,
+       month = dec,
+      volume = 761,
+         eid = {6},
+       pages = {6},
+         doi = {10.1088/0004-637X/761/1/6},
+      adsurl = {http://adsabs.harvard.edu/abs/2012ApJ...761....6M},
+     adsnote = {Provided by the SAO/NASA Astrophysics Data System}
+   }
