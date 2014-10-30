@@ -367,9 +367,21 @@ class OrbitPopulation(object):
         return -self.RVs * (self.M1s / (self.M1s + self.M2s))
     
     def dRV(self,dt,com=False):
-        """
+        """Change in RV of star 1 for time separation dt (default=days)
 
-        dt in days; if com, then returns the change in RV of component 1 in COM frame
+        Parameters
+        ----------
+        dt : float, array_like, or ``Quantity``
+            Time separation for which to compute RV change.  If not a ``Quantity``,
+            then assumed to be in days. 
+
+        com : bool, optional
+            If ``True``, then return dRV of star 1 in center-of-mass frame.
+
+        Returns
+        -------
+        dRV : ``Quantity``
+            Change in radial velocity over time dt.
         """
         if type(dt) != Quantity:
             dt *= u.day
@@ -389,6 +401,8 @@ class OrbitPopulation(object):
             return vel.z-self.RVs
 
     def RV_timeseries(self,ts,recalc=False):
+        """Radial Velocity time series for star 1 at given times ts.
+        """
         if type(ts) != Quantity:
             ts *= u.day
 
