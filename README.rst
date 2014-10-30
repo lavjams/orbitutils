@@ -30,7 +30,7 @@ Simulate a population for given primary and secondary mass(es), and orbital peri
     from orbitutils import OrbitPopulation
     pop = OrbitPopulation(1,1,1000,n=1e4) #Primary mass, secondary mass, orbital period (d)
 
-You can also create a distribution of secondary masses, and/or a distribution periods:
+You can also create a distribution of secondary masses, and/or a distribution of periods:
 
 .. code-block:: python
 
