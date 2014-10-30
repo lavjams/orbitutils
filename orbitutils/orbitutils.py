@@ -151,10 +151,10 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
             SkyCoord(vx,vy,vz,representation='cartesian')) 
 
 class TripleOrbitPopulation(object):
-    def __init__(self,M1s,M2s,M3s,Plong,Pshort,ecclong=0,eccshort=0,n=None,
-                 mean_anomalies_long=None,obsx_long=None,obsy_long=None,obsz_long=None,
+    def __init__(self,M1,M2,M3,Plong,Pshort,ecclong=0,eccshort=0,n=None,
+                 mean_anomaly_long=None,obsx_long=None,obsy_long=None,obsz_long=None,
                  obspos_long=None,
-                 mean_anomalies_short=None,obsx_short=None,obsy_short=None,obsz_short=None,
+                 mean_anomaly_short=None,obsx_short=None,obsy_short=None,obsz_short=None,
                  obspos_short=None):                 
         """Stars 2 and 3 orbit each other close (short orbit), far from star 1 (long orbit)
 
@@ -163,12 +163,13 @@ class TripleOrbitPopulation(object):
 
         Parameters
         ----------
-        M1s, M2s, M3s : float or array-like
+        M1, M2, M3 : float, array-like, or ``Quantity``
             Masses of stars.  Stars 2 and 3 are in a short orbit, far away from star 1.
+            If not ``Quantity`` objects, then assumed to be in solar mass units.
 
-        Plong, Pshort : float or array-like
+        Plong, Pshort : float or array-like, or ``Quantity``
             Orbital Periods.  Plong is orbital period of 2+3 and 1; Pshort is orbital
-            period of 2 and 3.
+            period of 2 and 3.  If not ``Quantity`` objects, assumed to be in days.
 
         ecclong, eccshort : float or array-like, optional
             Eccentricities.  Same story (long vs. short).  Default=0 (circular).
@@ -177,7 +178,7 @@ class TripleOrbitPopulation(object):
             Number of systems to simulate (if M1s, M2s, M3s aren't arrays of size > 1
             already)
 
-        mean_anomalies_short, mean_anomalies_long : float or array_like, optional
+        mean_anomaly_short, mean_anomaly_long : float or array_like, optional
             Mean anomalies.  This is only passed if you need to "restore" a
             particular specific configuration (i.e., a particular saved simulation).
             If not provided, then randomized on (0, 2pi).
@@ -195,12 +196,12 @@ class TripleOrbitPopulation(object):
         if Plong < Pshort:
             Pshort,Plong = (Plong, Pshort)
         
-        self.orbpop_long = OrbitPopulation(M1s,M2s+M3s,Plong,eccs=ecclong,n=n,
-                                           mean_anomalies=mean_anomalies_long,
+        self.orbpop_long = OrbitPopulation(M1,M2+M3,Plong,ecc=ecclong,n=n,
+                                           mean_anomaly=mean_anomaly_long,
                                            obsx=obsx_long,obsy=obsy_long,obsz=obsz_long)
 
-        self.orbpop_short = OrbitPopulation(M2s,M3s,Pshort,eccs=eccshort,n=n,
-                                           mean_anomalies=mean_anomalies_short,
+        self.orbpop_short = OrbitPopulation(M2,M3,Pshort,ecc=eccshort,n=n,
+                                           mean_anomaly=mean_anomaly_short,
                                            obsx=obsx_short,obsy=obsy_short,obsz=obsz_short)
 
 
@@ -209,22 +210,22 @@ class TripleOrbitPopulation(object):
     def RV_1(self):
         """Instantaneous RV of star 1 with respect to system center-of-mass
         """
-        return self.orbpop_long.RVs * (self.orbpop_long.M2s / (self.orbpop_long.M1s + self.orbpop_long.M2s))
+        return self.orbpop_long.RV * (self.orbpop_long.M2 / (self.orbpop_long.M1 + self.orbpop_long.M2))
 
     @property
     def RV_2(self):
         """Instantaneous RV of star 2 with respect to system center-of-mass
         """
-        return -self.orbpop_long.RVs * (self.orbpop_long.M1s /
-                                        (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
-                self.orbpop_short.RVs_com1
+        return -self.orbpop_long.RV * (self.orbpop_long.M1 /
+                                        (self.orbpop_long.M1 + self.orbpop_long.M2)) +\
+                self.orbpop_short.RV_com1
                 
     @property
     def RV_3(self):
         """Instantaneous RV of star 3 with respect to system center-of-mass
         """
-        return -self.orbpop_long.RVs * (self.orbpop_long.M1s / (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
-            self.orbpop_short.RVs_com2
+        return -self.orbpop_long.RV * (self.orbpop_long.M1 / (self.orbpop_long.M1 + self.orbpop_long.M2)) +\
+            self.orbpop_short.RV_com2
 
     @property
     def Rsky(self):
@@ -240,38 +241,38 @@ class TripleOrbitPopulation(object):
     def dRV_2(self,dt):
         """Returns difference in RVs (separated by time dt) of star 2.
         """
-        return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1s/(self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
+        return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1/(self.orbpop_long.M1 + self.orbpop_long.M2)) +\
             self.orbpop_short.dRV(dt,com=True)
 
     def dRV_3(self,dt):
         """Returns difference in RVs (separated by time dt) of star 3.
         """
-        return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1s/(self.orbpop_long.M1s + self.orbpop_long.M2s)) -\
-            self.orbpop_short.dRV(dt) * (self.orbpop_short.M1s/(self.orbpop_short.M1s + self.orbpop_short.M2s))
+        return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1/(self.orbpop_long.M1 + self.orbpop_long.M2)) -\
+            self.orbpop_short.dRV(dt) * (self.orbpop_short.M1/(self.orbpop_short.M1 + self.orbpop_short.M2))
         
 
 class OrbitPopulation(object):
-    def __init__(self,M1s,M2s,Ps,eccs=0,n=None,
-                 mean_anomalies=None,obsx=None,obsy=None,obsz=None,
+    def __init__(self,M1,M2,P,ecc=0,n=None,
+                 mean_anomaly=None,obsx=None,obsy=None,obsz=None,
                  obspos=None):
         """Population of orbits.
 
         Parameters
         ----------
-        M1s, M2s : float or array_like
-            Primary and secondary masses (in solar masses)
+        M1, M2 : float or array_like, or ``Quantity``
+            Primary and secondary masses (if not ``Quantity``, assumed to be in solar masses)
 
-        Ps : float or array_like
-            Orbital periods (in days)
+        P : float or array_like, or ``Quantity``
+            Orbital periods (if not ``Quantity``, assumed to be in days)
 
-        eccs : float or array_like, optional
+        ecc : float or array_like, optional
             Eccentricities.
 
         n : int, optional
             Number of instances to simulate.  If not provided, then this number
             will be the length of M2s (or Ps) provided.
 
-        mean_anomalies : float or array_like, optional
+        mean_anomaly : float or array_like, optional
             Mean anomalies of orbits.  Usually this will just be set randomly,
             but can be provided to initialize a particular state (e.g., when
             restoring an ``OrbitPopulation`` object from a saved state).
@@ -284,46 +285,49 @@ class OrbitPopulation(object):
             "Observer" positions may be set with a ``SkyCoord`` object (replaces
             obsx, obsy, obsz)
         """
-        M1s = np.atleast_1d(M1s) * u.M_sun
-        M2s = np.atleast_1d(M2s) * u.M_sun
-        Ps = np.atleast_1d(Ps) * u.day
+        if type(M1) != Quantity:
+            M1 = Quantity(M1, unit='M_sun')
+        if type(M2) != Quantity:
+            M2 = Quantity(M2, unit='M_sun')
+        if type(P) != Quantity:
+            P = Quantity(P, unit='day')
 
         if n is None:
-            if len(M2s)==1:
-                n = len(Ps)
+            if M2.size==1:
+                n = P.size
             else:
-                n = len(M2s)
+                n = M2.size
 
-        if len(M1s)==1 and len(M2s)==1:
-            M1s = np.ones(n)*M1s
-            M2s = np.ones(n)*M2s
+        # Below now unnecessary...
+        #if len(M1s)==1 and len(M2s)==1:
+        #    M1s = np.ones(n)*M1s
+        #    M2s = np.ones(n)*M2s
 
-        self.M1s = M1s
-        self.M2s = M2s
+        self.M1 = M1
+        self.M2 = M2
 
         self.N = n
 
-        if np.size(Ps)==1:
-            Ps = Ps*np.ones(n)
+        #if np.size(Ps)==1:
+        #    Ps = Ps*np.ones(n)
 
-        self.Ps = Ps
+        self.P = P
 
-        if np.size(eccs) == 1:
-            eccs = np.ones(n)*eccs
+        if np.size(ecc) == 1:
+            ecc = np.ones(n)*ecc
 
-        self.eccs = eccs
+        self.ecc = ecc
 
-        mred = M1s*M2s/(M1s+M2s)
-        semimajors = semimajor(Ps,mred)   #AU
-        self.semimajors = semimajors
-        self.mreds = mred
+        mred = M1*M2/(M1+M2)
+        self.semimajor = semimajor(P,mred)   #AU
+        self.mred = mred
 
-        if mean_anomalies is None:
-            Ms = rand.uniform(0,2*np.pi,size=n)
+        if mean_anomaly is None:
+            M = rand.uniform(0,2*np.pi,size=n)
         else:
-            Ms = mean_anomalies
+            M = mean_anomaly
 
-        self.Ms = Ms
+        self.M = M
 
         #coordinates of random observers
         if obspos is None:
@@ -335,36 +339,36 @@ class OrbitPopulation(object):
             self.obspos = obspos
 
         #get positions, velocities relative to M1
-        positions,velocities = orbit_posvel(self.Ms,self.eccs,self.semimajors.value,
-                                            self.mreds.value,
+        position,velocity = orbit_posvel(self.M,self.ecc,self.semimajor.value,
+                                            self.mred.value,
                                             self.obspos)
 
-        self.positions = positions
-        self.velocities = velocities
+        self.position = position
+        self.velocity = velocity
         
     @property
     def Rsky(self):
         """Projected sky separation of stars
         """
-        return np.sqrt(self.positions.x**2 + self.positions.y**2)
+        return np.sqrt(self.position.x**2 + self.position.y**2)
 
     @property
-    def RVs(self):
+    def RV(self):
         """Relative radial velocities of two stars
         """
-        return self.velocities.z
+        return self.velocity.z
 
     @property
-    def RVs_com1(self):
+    def RV_com1(self):
         """RVs of star 1 relative to center-of-mass
         """
-        return self.RVs * (self.M2s / (self.M1s + self.M2s))
+        return self.RV * (self.M2 / (self.M1 + self.M2))
 
     @property
-    def RVs_com2(self):
+    def RV_com2(self):
         """RVs of star 2 relative to center-of-mass
         """
-        return -self.RVs * (self.M1s / (self.M1s + self.M2s))
+        return -self.RV * (self.M1 / (self.M1 + self.M2))
     
     def dRV(self,dt,com=False):
         """Change in RV of star 1 for time separation dt (default=days)
@@ -386,19 +390,19 @@ class OrbitPopulation(object):
         if type(dt) != Quantity:
             dt *= u.day
 
-        mean_motions = np.sqrt(G*(self.mreds)*MSUN/(self.semimajors*AU)**3)
-        mean_motions = np.sqrt(const.G*(self.mreds)/(self.semimajors)**3)
+        mean_motions = np.sqrt(G*(self.mred)*MSUN/(self.semimajor*AU)**3)
+        mean_motions = np.sqrt(const.G*(self.mred)/(self.semimajor)**3)
         #print mean_motions * dt / (2*pi)
 
-        newMs = self.Ms + mean_motions * dt
-        pos,vel = orbit_posvel(newMs,self.eccs,self.semimajors.value,
-                               self.mreds.value,
+        newM = self.M + mean_motions * dt
+        pos,vel = orbit_posvel(newM,self.ecc,self.semimajor.value,
+                               self.mred.value,
                                self.obspos)
         
         if com:
-            return (vel.z - self.RVs) * (self.M2s / (self.M1s + self.M2s))
+            return (vel.z - self.RV) * (self.M2 / (self.M1 + self.M2))
         else:
-            return vel.z-self.RVs
+            return vel.z-self.RV
 
     def RV_timeseries(self,ts,recalc=False):
         """Radial Velocity time series for star 1 at given times ts.
@@ -421,6 +425,28 @@ class OrbitPopulation(object):
 
 class BinaryGrid(OrbitPopulation):
     def __init__(self, M1, qmin=0.1, qmax=1, Pmin=0.5, Pmax=365, N=1e5, logP=True, eccfn=None):
+        """A grid of companions to primary, in mass ratio and period space.
+
+        Parameters
+        ----------
+        M1 : float
+            Primary mass (solar masses)
+
+        qmin,qmax : float, optional
+            Minimum and maximum mass ratios.
+
+        Pmin,Pmax : float, optional
+            Min/max periods in days.
+
+        N : int, optional
+            Total number of simulations.
+
+        logP : bool, optional
+            Whether to grid in log-period.  If ``False``, then linear.
+
+        eccfn : callable, or ``None``, optional
+            Function that returns eccentricity as a function of period.
+        """
         M1s = np.ones(N)*M1
         M2s = (rand.random(size=N)*(qmax-qmin) + qmin)*M1s
         if logP:
@@ -428,6 +454,8 @@ class BinaryGrid(OrbitPopulation):
         else:
             Ps = rand.random(size=N)*(Pmax - Pmin) + Pmin
 
+        
+            
         if eccfn is None:
             eccs = 0
         else:
@@ -435,10 +463,14 @@ class BinaryGrid(OrbitPopulation):
 
         self.eccfn = eccfn
 
-        OrbitPopulation.__init__(self,M1s,M2s,Ps,eccs=eccs)
+        OrbitPopulation.__init__(self,M1s,M2s,Ps,ecc=eccs)
 
     def RV_RMSgrid(self,ts,res=20,mres=None,Pres=None,conf=0.95,measured_rms=None,drv=0,
                    plot=True,fig=None,contour=True,sigma=1):
+        """Writes a grid of RV RMS values, assuming observations at given times.
+
+        Hasn't really been tested 
+        """
         RVs = self.RV_timeseries(ts)
         RVs += rand.normal(size=np.size(RVs)).reshape(RVs.shape)*drv
         rms = RVs.std(axis=0)
@@ -448,8 +480,8 @@ class BinaryGrid(OrbitPopulation):
         if Pres is None:
             Pres = res
 
-        mbins = np.linspace(self.M2s.min(),self.M2s.max(),mres+1)
-        Pbins = np.logspace(np.log10(self.Ps.min()),np.log10(self.Ps.max()),Pres+1)
+        mbins = np.linspace(self.M2.min(),self.M2.max(),mres+1)
+        Pbins = np.logspace(np.log10(self.P.min()),np.log10(self.P.max()),Pres+1)
         logPbins = np.log10(Pbins)
 
         mbin_centers = (mbins[:-1] + mbins[1:])/2.
@@ -458,8 +490,8 @@ class BinaryGrid(OrbitPopulation):
         #print mbins
         #print Pbins
 
-        minds = np.digitize(self.M2s,mbins)
-        Pinds = np.digitize(self.Ps,Pbins)
+        minds = np.digitize(self.M2,mbins)
+        Pinds = np.digitize(self.P,Pbins)
 
         #means = np.zeros((mres,Pres))
         #stds = np.zeros((mres,Pres))
@@ -501,7 +533,7 @@ class BinaryGrid(OrbitPopulation):
                 plt.clabel(c, fontsize=10, inline=1)
                 
             else:
-                extent = [np.log10(self.Ps.min()),np.log10(self.Ps.max()),self.M2s.min(),self.M2s.max()]
+                extent = [np.log10(self.P.min()),np.log10(self.P.max()),self.M2.min(),self.M2.max()]
                 im = plt.imshow(pctiles,cmap='Greys',extent=extent,aspect='auto')
 
                 fig = plt.gcf()
