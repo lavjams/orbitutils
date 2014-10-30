@@ -252,12 +252,16 @@ class TripleOrbitPopulation(object):
             self.orbpop_short.dRV(dt) * (self.orbpop_short.M1/(self.orbpop_short.M1 + self.orbpop_short.M2))
 
     def save_hdf(self,filename,path=''):
+        """Save to .h5 file.
+        """
         self.orbpop_long.save_hdf(filename,'{}/long'.format(path))
         self.orbpop_short.save_hdf(filename,'{}/short'.format(path))
         
             
 class TripleOrbitPopulation_FromH5(TripleOrbitPopulation):
     def __init__(self,filename,path=''):
+        """Restore ``TripleOrbitPopulation`` from saved .h5 file.
+        """
         self.orbpop_long = OrbitPopulation_FromH5(filename,'{}/long'.format(path))
         self.orbpop_short = OrbitPopulation_FromH5(filename,'{}/short'.format(path))
         
@@ -458,6 +462,8 @@ class OrbitPopulation(object):
 
 class OrbitPopulation_FromH5(OrbitPopulation):
     def __init__(self,filename,path=''):
+        """Restores ``OrbitPopulation`` from saved .h5 file.
+        """
         df = pd.read_hdf(filename,'{}/df'.format(path))
         OrbitPopulation.__init__(self, df['M1'], df['M2'], df['P'],
                                  ecc=df['ecc'], mean_anomaly=df['mean_anomaly'],
