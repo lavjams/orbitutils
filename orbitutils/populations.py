@@ -18,7 +18,6 @@ AU = const.au.cgs.value
 DAY = 86400
 G = const.G.cgs.value
 
-from .kepler import Efn #
 from .utils import semimajor,random_spherepos,orbitproject,orbit_posvel
 
 
