@@ -1,7 +1,7 @@
 orbitutils
 ==========
+This package allows for easy and very quick Monte Carlo simulation of populations of orbits, giving instantly distributions of projected separations, relative RVs between components, etc.  Includes calculations for eccentric orbits.  Makes occasional use of the `astropy <www.astropy.org>`_ ``Quantity`` object to keep track of some quantities, and the astropy ``SkyCoord`` object to keep track of coordinates. 
 
-This package allows for easy and very quick Monte Carlo simulation of populations of orbits, giving instantly distributions of projected separations, relative RVs between components, etc.  Includes calculations for eccentric orbits.
 
 See below for a quick intro, and the `notebook demo <http://nbviewer.ipython.org/github/timothydmorton/orbitutils/blob/master/notebooks/demo.ipynb>`_ for more.
 
