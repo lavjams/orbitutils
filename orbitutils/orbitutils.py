@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from plotutils import setfig
 
 from astropy import units as u
+from astropy.units.quantity import Quantity
 from astropy import constants as const
 MSUN = const.M_sun.cgs.value
 AU = const.au.cgs.value
@@ -17,8 +18,15 @@ G = const.G.cgs.value
 
 from .kepler import Efn #
 
-def semimajor(P,mstar=1):
-    return ((P*DAY/2/np.pi)**2*G*mstar*MSUN)**(1./3)/AU
+def semimajor(P,M):
+    """P, M can be ``Quantity`` objects; otherwise default to day, M_sun
+    """
+    if type(P) != Quantity:
+        P = P*u.day
+    if type(M) != Quantity:
+        M = M*u.M_sun
+    a = ((P/2/np.pi)**2*const.G*M)**(1./3)
+    return a.to(u.AU)
 
 def random_spherepos(n):
     """returns SkyCoord object with n positions randomly oriented on the unit sphere
@@ -91,7 +99,7 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     Parameters
     ----------
     Ms, eccs, semimajors, mreds : float or array-like
-        Mean anomalies, eccentricities, semimajor axes, reduced masses.
+        Mean anomalies, eccentricities, semimajor axes (AU), reduced masses (Msun).
 
     obspos : ``None``, (x,y,z) tuple or ``SkyCoord`` object
         Locations of observers for which to return coordinates.
@@ -107,21 +115,22 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     """
 
     Es = Efn(Ms,eccs) #eccentric anomalies by interpolation
-    
+
     rs = semimajors*(1-eccs*np.cos(Es))
     nus = 2 * np.arctan2(np.sqrt(1+eccs)*np.sin(Es/2),np.sqrt(1-eccs)*np.cos(Es/2))
 
     xs = semimajors*(np.cos(Es) - eccs)         #AU
     ys = semimajors*np.sqrt(1-eccs**2)*np.sin(Es)  #AU
-
+    
     Edots = np.sqrt(G*mreds*MSUN/(semimajors*AU)**3)/(1-eccs*np.cos(Es))
+        
     xdots = -semimajors*AU*np.sin(Es)*Edots/1e5  #km/s
     ydots = semimajors*AU*np.sqrt(1-eccs**2)*np.cos(Es)*Edots/1e5 # km/s
         
     n = np.size(xs)
 
-    orbpos = SkyCoord(xs,ys,0,representation='cartesian',unit='AU')
-    orbvel = SkyCoord(xdots,ydots,0,representation='cartesian',unit='km/s')
+    orbpos = SkyCoord(xs,ys,0*u.AU,representation='cartesian',unit='AU')
+    orbvel = SkyCoord(xdots,ydots,0*u.km/u.s,representation='cartesian',unit='km/s')
     if obspos is None:
         obspos = random_spherepos(n) #observer position
     if type(obspos) == type((1,2,3)):
@@ -180,7 +189,8 @@ class TripleOrbitPopulation(object):
             "Observer" positions for long orbit.
 
         obspos_short, obspos_long : None or ``SkyCoord``
-            "Observer" positions for short and long, provided as ``SkyCoord`` objects.
+            "Observer" positions for short and long, provided as ``SkyCoord`` objects
+            (replaces obsx_short/long, obsy_short/long, obsz_short/long)
         """
         if Plong < Pshort:
             Pshort,Plong = (Plong, Pshort)
@@ -193,24 +203,49 @@ class TripleOrbitPopulation(object):
                                            mean_anomalies=mean_anomalies_short,
                                            obsx=obsx_short,obsy=obsy_short,obsz=obsz_short)
 
-        #define Rsky to be the large separation
-        self.Rsky = self.orbpop_long.Rsky
 
-        #define instantaneous RV_1, RV_2 and RV_3 relative to COM reference frame
-        self.RV_1 = self.orbpop_long.RVs * (self.orbpop_long.M2s / (self.orbpop_long.M1s + self.orbpop_long.M2s))
-        self.RV_2 = -self.orbpop_long.RVs * (self.orbpop_long.M1s / (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
-            self.orbpop_short.RVs_com1
-        self.RV_3 = -self.orbpop_long.RVs * (self.orbpop_long.M1s / (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
+
+    @property
+    def RV_1(self):
+        """Instantaneous RV of star 1 with respect to system center-of-mass
+        """
+        return self.orbpop_long.RVs * (self.orbpop_long.M2s / (self.orbpop_long.M1s + self.orbpop_long.M2s))
+
+    @property
+    def RV_2(self):
+        """Instantaneous RV of star 2 with respect to system center-of-mass
+        """
+        return -self.orbpop_long.RVs * (self.orbpop_long.M1s /
+                                        (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
+                self.orbpop_short.RVs_com1
+                
+    @property
+    def RV_3(self):
+        """Instantaneous RV of star 3 with respect to system center-of-mass
+        """
+        return -self.orbpop_long.RVs * (self.orbpop_long.M1s / (self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
             self.orbpop_short.RVs_com2
 
+    @property
+    def Rsky(self):
+        """Projected separation of star 2+3 pair from star 1 
+        """
+        return self.orbpop_long.Rsky
+    
     def dRV_1(self,dt):
+        """Returns difference in RVs (separated by time dt) of star 1.
+        """
         return self.orbpop_long.dRV(dt,com=True)
 
     def dRV_2(self,dt):
+        """Returns difference in RVs (separated by time dt) of star 2.
+        """
         return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1s/(self.orbpop_long.M1s + self.orbpop_long.M2s)) +\
             self.orbpop_short.dRV(dt,com=True)
 
     def dRV_3(self,dt):
+        """Returns difference in RVs (separated by time dt) of star 3.
+        """
         return -self.orbpop_long.dRV(dt) * (self.orbpop_long.M1s/(self.orbpop_long.M1s + self.orbpop_long.M2s)) -\
             self.orbpop_short.dRV(dt) * (self.orbpop_short.M1s/(self.orbpop_short.M1s + self.orbpop_short.M2s))
         
@@ -219,9 +254,39 @@ class OrbitPopulation(object):
     def __init__(self,M1s,M2s,Ps,eccs=0,n=None,
                  mean_anomalies=None,obsx=None,obsy=None,obsz=None,
                  obspos=None):
-        M1s = np.atleast_1d(M1s)
-        M2s = np.atleast_1d(M2s)
-        Ps = np.atleast_1d(Ps)
+        """Population of orbits.
+
+        Parameters
+        ----------
+        M1s, M2s : float or array_like
+            Primary and secondary masses (in solar masses)
+
+        Ps : float or array_like
+            Orbital periods (in days)
+
+        eccs : float or array_like, optional
+            Eccentricities.
+
+        n : int, optional
+            Number of instances to simulate.  If not provided, then this number
+            will be the length of M2s (or Ps) provided.
+
+        mean_anomalies : float or array_like, optional
+            Mean anomalies of orbits.  Usually this will just be set randomly,
+            but can be provided to initialize a particular state (e.g., when
+            restoring an ``OrbitPopulation`` object from a saved state).
+
+        obsx, obsy, obsz : float or array_like, optional
+            "Observer" positions to define coordinates.  Will be set randomly
+            if not provided.
+
+        obspos : ``SkyCoord`` object, optional
+            "Observer" positions may be set with a ``SkyCoord`` object (replaces
+            obsx, obsy, obsz)
+        """
+        M1s = np.atleast_1d(M1s) * u.M_sun
+        M2s = np.atleast_1d(M2s) * u.M_sun
+        Ps = np.atleast_1d(Ps) * u.day
 
         if n is None:
             if len(M2s)==1:
@@ -260,19 +325,6 @@ class OrbitPopulation(object):
 
         self.Ms = Ms
 
-        #coordinate system: all orbits here simulated in x-y plane.
-        Es = Efn(Ms,eccs)
-
-        rs = semimajors*(1-eccs*np.cos(Es))
-        nus = 2 * np.arctan2(np.sqrt(1+eccs)*np.sin(Es/2),np.sqrt(1-eccs)*np.cos(Es/2))
-
-        xs = semimajors*(np.cos(Es) - eccs)         #AU
-        ys = semimajors*np.sqrt(1-eccs**2)*np.sin(Es)  #AU
-
-        Edots = np.sqrt(G*mred*MSUN/(semimajors*AU)**3)/(1-eccs*np.cos(Es))
-        xdots = -semimajors*AU*np.sin(Es)*Edots/1e5  #km/s
-        ydots = semimajors*AU*np.sqrt(1-eccs**2)*np.cos(Es)*Edots/1e5 # km/s
-        
         #coordinates of random observers
         if obspos is None:
             if obsx is None:
@@ -281,50 +333,72 @@ class OrbitPopulation(object):
                 self.obspos = SkyCoord(obsx,obsy,obsz,representation='cartesian')
         else:
             self.obspos = obspos
-                            
 
         #get positions, velocities relative to M1
-        positions,velocities = orbit_posvel(self.Ms,self.eccs,self.semimajors,self.mreds,
+        positions,velocities = orbit_posvel(self.Ms,self.eccs,self.semimajors.value,
+                                            self.mreds.value,
                                             self.obspos)
 
         self.positions = positions
         self.velocities = velocities
         
-        #self.x,self.y,self.z = positions
-        #self.vx,self.vy,self.vz = velocities
-
-        self.Rsky = np.sqrt(self.positions.x**2 +
-                         self.positions.y**2) # on-sky separation, in projected AU
-        self.RVs = self.velocities.z  #relative radial velocities
-
-        #velocities relative to center of mass
-        self.RVs_com1 = self.RVs * (self.M2s / (self.M1s + self.M2s))
-        self.RVs_com2 = -self.RVs * (self.M1s / (self.M1s + self.M2s))
-
-    def dRV(self,dt,com=False):
-        """dt in days; if com, then returns the change in RV of component 1 in COM frame
+    @property
+    def Rsky(self):
+        """Projected sky separation of stars
         """
-        dt *= DAY
+        return np.sqrt(self.positions.x**2 + self.positions.y**2)
+
+    @property
+    def RVs(self):
+        """Relative radial velocities of two stars
+        """
+        return self.velocities.z
+
+    @property
+    def RVs_com1(self):
+        """RVs of star 1 relative to center-of-mass
+        """
+        return self.RVs * (self.M2s / (self.M1s + self.M2s))
+
+    @property
+    def RVs_com2(self):
+        """RVs of star 2 relative to center-of-mass
+        """
+        return -self.RVs * (self.M1s / (self.M1s + self.M2s))
+    
+    def dRV(self,dt,com=False):
+        """
+
+        dt in days; if com, then returns the change in RV of component 1 in COM frame
+        """
+        if type(dt) != Quantity:
+            dt *= u.day
 
         mean_motions = np.sqrt(G*(self.mreds)*MSUN/(self.semimajors*AU)**3)
+        mean_motions = np.sqrt(const.G*(self.mreds)/(self.semimajors)**3)
         #print mean_motions * dt / (2*pi)
 
         newMs = self.Ms + mean_motions * dt
-        pos,vel = orbit_posvel(newMs,self.eccs,self.semimajors,self.mreds,
+        pos,vel = orbit_posvel(newMs,self.eccs,self.semimajors.value,
+                               self.mreds.value,
                                self.obspos)
+        
         if com:
-            return (vel[2] - self.RVs) * (self.M2s / (self.M1s + self.M2s))
+            return (vel.z - self.RVs) * (self.M2s / (self.M1s + self.M2s))
         else:
-            return vel[2]-self.RVs
+            return vel.z-self.RVs
 
     def RV_timeseries(self,ts,recalc=False):
+        if type(ts) != Quantity:
+            ts *= u.day
+
         if not recalc and hasattr(self,'RV_measurements'):
-            if ts == self.ts:
+            if (ts == self.ts).all():
                 return self.RV_measurements
             else:
                 pass
-        
-        RVs = np.zeros((len(ts),self.N))
+            
+        RVs = Quantity(np.zeros((len(ts),self.N)),unit='km/s')
         for i,t in enumerate(ts):
             RVs[i,:] = self.dRV(t,com=True)
         self.RV_measurements = RVs
