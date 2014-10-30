@@ -1,36 +1,36 @@
 from __future__ import division,print_function
 
-#import inclination as inc
-from scipy.optimize import newton
-from scipy.interpolate import UnivariateSpline as interpolate
-import pkg_resources
-
 import numpy as np
-from scipy.interpolate import LinearNDInterpolator as interpnd
-
 from astropy.coordinates import SkyCoord,Angle
-
 import numpy.random as rand
 import sys,re,os
-import numpy as np
 import matplotlib.pyplot as plt
-import plotutils as plu
+
+from plotutils import setfig
 
 from astropy import units as u
-
 from astropy import constants as const
 MSUN = const.M_sun.cgs.value
 AU = const.au.cgs.value
 DAY = 86400
 G = const.G.cgs.value
 
-from .kepler import Efn
+from .kepler import Efn #
 
 def semimajor(P,mstar=1):
     return ((P*DAY/2/np.pi)**2*G*mstar*MSUN)**(1./3)/AU
 
 def random_spherepos(n):
-    """returns SkyCoord object
+    """returns SkyCoord object with n positions randomly oriented on the unit sphere
+
+    Parameters
+    ----------
+    n : int
+        number of positions desired
+
+    Returns
+    -------
+    c : ``SkyCoord`` object with random positions 
     """
     signs = np.sign(rand.uniform(-1,1,size=n))
     thetas = Angle(np.arccos(rand.uniform(size=n)*signs),unit=u.rad) #random b/w 0 and 180
@@ -39,12 +39,37 @@ def random_spherepos(n):
     return c
 
 def orbitproject(x,y,inc,phi=0,psi=0):
-    """
-
+    """Transform x,y planar coordinates into observer's coordinate frame.
+    
     x,y are coordinates in z=0 plane (plane of the orbit)
 
-    observer is at (inc, phi) on celestial sphere; psi is orientation of
-    final x-y axes
+    observer is at (inc, phi) on celestial sphere (angles in radians);
+    psi is orientation of final x-y axes about the (inc,phi) vector.
+
+    Returns x,y,z values in observer's coordinate frame, where
+    x,y are now plane-of-sky coordinates and z is along the line of sight.
+
+    Parameters
+    ----------
+    x,y : float or arrray-like
+        Coordinates to transorm
+
+    inc : float or array-like
+        Polar angle(s) of observer (where inc=0 corresponds to north pole
+        of original x-y plane).  This angle is the same as standard "inclination."
+
+    phi : float or array-like, optional
+        Azimuthal angle of observer around z-axis
+
+    psi : float or array-like, optional
+        Orientation of final observer coordinate frame (azimuthal around
+        (inc,phi) vector.
+
+    Returns
+    -------
+    x,y,z : ``ndarray``
+        Coordinates in observers' frames.  x,y in "plane of sky" and z
+        along line of sight.
     """
 
     x2 = x*np.cos(phi) + y*np.sin(phi)
@@ -60,10 +85,28 @@ def orbitproject(x,y,inc,phi=0,psi=0):
 def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     """returns positions in projected AU and velocities in km/s for given mean anomalies
 
-    returns positions and velocities as SkyCoord objects
+    Returns positions and velocities as SkyCoord objects.  Uses
+    ``orbitutils.kepler.Efn`` to calculate eccentric anomalies using interpolation.    
+
+    Parameters
+    ----------
+    Ms, eccs, semimajors, mreds : float or array-like
+        Mean anomalies, eccentricities, semimajor axes, reduced masses.
+
+    obspos : ``None``, (x,y,z) tuple or ``SkyCoord`` object
+        Locations of observers for which to return coordinates.
+        If ``None`` then populate randomly on sphere.  If (x,y,z) or
+        ``SkyCoord`` object provided, then use those.
+
+    Returns
+    -------
+    pos,vel : ``SkyCoord``
+        Objects representing the positions and velocities, the coordinates
+        of which are ``Quantity`` objects that have units.  Positions are in
+        projected AU and velocities in km/s. 
     """
 
-    Es = Efn(Ms,eccs)
+    Es = Efn(Ms,eccs) #eccentric anomalies by interpolation
     
     rs = semimajors*(1-eccs*np.cos(Es))
     nus = 2 * np.arctan2(np.sqrt(1+eccs)*np.sin(Es/2),np.sqrt(1-eccs)*np.cos(Es/2))
@@ -78,9 +121,9 @@ def orbit_posvel(Ms,eccs,semimajors,mreds,obspos=None):
     n = np.size(xs)
 
     #orbpos = inc.spherepos((xs,ys,zeros(n)),normed=False)
-    orbpos = SkyCoord(xs,ys,0,representation='cartesian')
+    orbpos = SkyCoord(xs,ys,0,representation='cartesian',unit='AU')
     #orbvel = inc.spherepos((xdots,ydots,zeros(n)),normed=False)
-    orbvel = SkyCoord(xdots,ydots,0,representation='cartesian')
+    orbvel = SkyCoord(xdots,ydots,0,representation='cartesian',unit='km/s')
     if obspos is None:
         #obspos = inc.rand_spherepos(n) #observer position
         obspos = random_spherepos(n) #observer position
@@ -322,7 +365,7 @@ class BinaryGrid(OrbitPopulation):
         #interp = interp2d(Ms,logPs,pctiles.ravel(),kind='linear')
 
         if plot:
-            plu.setfig(fig)
+            setfig(fig)
 
             if contour:
                 mbin_centers = (mbins[:-1] + mbins[1:])/2.
