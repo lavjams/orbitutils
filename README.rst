@@ -56,7 +56,7 @@ and then read back in/restored as follows:
 
 Attribution
 -----------
-If you use this software for your research, please let me know (tim.morton@gmail.com).  Eventually there will be a publication to cite for this code specifically; until then, please cite my 2012 validation method paper::
+If you use this software for your research, please let me know.  Eventually there will be a more current publication to cite; until then, please cite my 2012 planet validation method paper which used this code::
 
    @ARTICLE{2012ApJ...761....6M,
       author = {{Morton}, T.~D.},
