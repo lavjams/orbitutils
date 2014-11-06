@@ -24,6 +24,6 @@ setup(name = "orbitutils",
         'Topic :: Scientific/Engineering',
         'Topic :: Scientific/Engineering :: Astronomy'
         ],
-      install_requires=['pandas>=0.13','plotutils'],
+      install_requires=['pandas>=0.13','plotutils','astropy>=0.4'],
       zip_safe=False
 ) 
