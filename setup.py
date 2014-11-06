@@ -8,7 +8,7 @@ def readme():
         return f.read()
 
 setup(name = "orbitutils",
-      version = "0.1.2",
+      version = "0.1.3",
       description = "Easily make Monte Carlo simulations of binary or triple orbits.",
       long_description = readme(),
       author = "Timothy D. Morton",
