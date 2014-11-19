@@ -13,6 +13,8 @@ Contents:
 
 Documentation under construction.
 
+.. autoclass:: orbitutils.OrbitPopulation
+   :inherited-members:
 
 Indices and tables
 ==================
