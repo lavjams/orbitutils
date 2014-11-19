@@ -1,7 +1,15 @@
-__all__ = ['populations','kepler','utils']
+__version__ = "0.1.3"
 
-from populations import OrbitPopulation,OrbitPopulation_FromH5
-from populations import TripleOrbitPopulation,TripleOrbitPopulation_FromH5
-from populations import BinaryGrid
+try:
+  __ORBITUTILS_SETUP__
+except NameError:
+  __ORBITUTILS_SETUP__ = False
 
-from utils import semimajor
+  __all__ = ['OrbitPopulation','OrbitPopulation_FromH5','TripleOrbitPopulation',
+            'TripleOrbitPopulation','TripleOrbitPopulation_FromH5','semimajor']
+  
+  from populations import OrbitPopulation,OrbitPopulation_FromH5
+  from populations import TripleOrbitPopulation,TripleOrbitPopulation_FromH5
+  from populations import BinaryGrid
+  
+  from utils import semimajor
