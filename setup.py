@@ -7,8 +7,19 @@ def readme():
     with open('README.rst') as f:
         return f.read()
 
+# Hackishly inject a constant into builtins to enable importing of the
+# package before the library is built.
+import sys
+if sys.version_info[0] < 3:
+    import __builtin__ as builtins
+else:
+    import builtins
+builtins.__ORBITUTILS_SETUP__ = True
+import orbitutils
+
+
 setup(name = "orbitutils",
-      version = "0.1.3",
+      version = orbitutils.__version__,
       description = "Easily make Monte Carlo simulations of binary or triple orbits.",
       long_description = readme(),
       author = "Timothy D. Morton",
