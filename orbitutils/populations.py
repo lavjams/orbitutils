@@ -64,8 +64,8 @@ class TripleOrbitPopulation(object):
             "Observer" positions for short and long, provided as ``SkyCoord`` objects
             (replaces obsx_short/long, obsy_short/long, obsz_short/long)
         """
-        if Plong < Pshort:
-            Pshort,Plong = (Plong, Pshort)
+        #if Plong < Pshort:
+        #    Pshort,Plong = (Plong, Pshort)
         
         self.orbpop_long = OrbitPopulation(M1,M2+M3,Plong,ecc=ecclong,n=n,
                                            mean_anomaly=mean_anomaly_long,
