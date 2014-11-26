@@ -41,6 +41,8 @@ class TripleOrbitPopulation(object):
         Plong, Pshort : float or array-like, or ``Quantity``
             Orbital Periods.  Plong is orbital period of 2+3 and 1; Pshort is orbital
             period of 2 and 3.  If not ``Quantity`` objects, assumed to be in days.
+            N.B. If any item in Pshort happens to be longer than the corresponding item
+            in Plong, they will be switched. 
 
         ecclong, eccshort : float or array-like, optional
             Eccentricities.  Same story (long vs. short).  Default=0 (circular).
@@ -64,6 +66,7 @@ class TripleOrbitPopulation(object):
             "Observer" positions for short and long, provided as ``SkyCoord`` objects
             (replaces obsx_short/long, obsy_short/long, obsz_short/long)
         """
+        Pshort, Plong = (np.minimum(Pshort,Plong), np.maximimum(Pshort,Plong))
         #if Plong < Pshort:
         #    Pshort,Plong = (Plong, Pshort)
         
@@ -76,6 +79,12 @@ class TripleOrbitPopulation(object):
                                            obsx=obsx_short,obsy=obsy_short,obsz=obsz_short)
 
 
+    @property
+    def RV(self):
+        """Instantaneous RV of star 1 with respect to system center-of-mass
+        """
+        return self.RV_1
+        
     @property
     def RV_1(self):
         """Instantaneous RV of star 1 with respect to system center-of-mass
@@ -102,6 +111,11 @@ class TripleOrbitPopulation(object):
         """Projected separation of star 2+3 pair from star 1 
         """
         return self.orbpop_long.Rsky
+
+    def dRV(self,dt):
+        """Returns difference in RVs (separated by time dt) of star 1.
+        """
+        return self.dRV_1(dt)
     
     def dRV_1(self,dt):
         """Returns difference in RVs (separated by time dt) of star 1.
