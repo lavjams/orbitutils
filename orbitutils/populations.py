@@ -66,7 +66,7 @@ class TripleOrbitPopulation(object):
             "Observer" positions for short and long, provided as ``SkyCoord`` objects
             (replaces obsx_short/long, obsy_short/long, obsz_short/long)
         """
-        Pshort, Plong = (np.minimum(Pshort,Plong), np.maximimum(Pshort,Plong))
+        Pshort, Plong = (np.minimum(Pshort,Plong), np.maximum(Pshort,Plong))
         #if Plong < Pshort:
         #    Pshort,Plong = (Plong, Pshort)
         
