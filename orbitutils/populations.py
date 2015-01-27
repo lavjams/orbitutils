@@ -161,8 +161,8 @@ class TripleOrbitPopulation_FromH5(TripleOrbitPopulation_FromDF):
     def __init__(self,filename,path=''):
         """Restore ``TripleOrbitPopulation`` from saved .h5 file.
         """
-        df_long = pd.read_hdf(filename,'{}/long/df'.format(path))
-        df_short = pd.read_hdf(filename,'{}/short/df'.format(path))
+        df_long = pd.read_hdf(filename,'{}/long/df'.format(path), mode='r')
+        df_short = pd.read_hdf(filename,'{}/short/df'.format(path), mode='r')
         TripleOrbitPopulation_FromDF.__init__(self, df_long, df_short)
         #self.orbpop_long = OrbitPopulation_FromH5(filename,'{}/long'.format(path))
         #self.orbpop_short = OrbitPopulation_FromH5(filename,'{}/short'.format(path))
@@ -395,7 +395,7 @@ class OrbitPopulation_FromH5(OrbitPopulation_FromDF):
     def __init__(self,filename,path=''):
         """Restores ``OrbitPopulation`` from saved .h5 file.
         """
-        df = pd.read_hdf(filename,'{}/df'.format(path))
+        df = pd.read_hdf(filename,'{}/df'.format(path), mode='r')
         OrbitPopulation_FromDF.__init__(self, df)
 
         
