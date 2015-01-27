@@ -141,6 +141,15 @@ class TripleOrbitPopulation(object):
         self.orbpop_short.save_hdf(filename,'{}/short'.format(path))
         
 
+    def __add__(self, other):
+        if type(self) != type(other):
+            raise TypeError('Can only add like types of TripleOrbitPopulation')
+
+        newdf_long = pd.concat((self.orbpop_long.dataframe, other.orbpop_long.dataframe))
+        newdf_short = pd.concat((self.orbpop_short.dataframe, other.orbpop_short.dataframe))
+
+        return TripleOrbitPopulation_FromDF(newdf_long, newdf_short)
+
 class TripleOrbitPopulation_FromDF(TripleOrbitPopulation):
     def __init__(self, df_long, df_short):
         """Initializes ``TripleOrbitPopulation`` from two DataFrame objects
@@ -253,6 +262,14 @@ class OrbitPopulation(object):
 
         self.position = position
         self.velocity = velocity
+
+    def __add__(self, other):
+        if type(self) != type(other):
+            raise TypeError('Can only add like types of OrbitPopulation')
+
+        newdf = pd.concat((self.dataframe, other.dataframe))
+
+        return OrbitPopulation_FromDF(newdf)
         
     @property
     def Rsky(self):
