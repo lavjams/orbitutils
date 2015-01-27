@@ -140,13 +140,23 @@ class TripleOrbitPopulation(object):
         self.orbpop_long.save_hdf(filename,'{}/long'.format(path))
         self.orbpop_short.save_hdf(filename,'{}/short'.format(path))
         
+
+class TripleOrbitPopulation_FromDF(TripleOrbitPopulation):
+    def __init__(self, df_long, df_short):
+        """Initializes ``TripleOrbitPopulation`` from two DataFrame objects
+        """
+        self.orbpop_long = OrbitPopulation_FromDF(df_long)
+        self.orbpop_short = OrbitPopulation_FromDF(df_short)
             
-class TripleOrbitPopulation_FromH5(TripleOrbitPopulation):
+class TripleOrbitPopulation_FromH5(TripleOrbitPopulation_FromDF):
     def __init__(self,filename,path=''):
         """Restore ``TripleOrbitPopulation`` from saved .h5 file.
         """
-        self.orbpop_long = OrbitPopulation_FromH5(filename,'{}/long'.format(path))
-        self.orbpop_short = OrbitPopulation_FromH5(filename,'{}/short'.format(path))
+        df_long = pd.read_hdf(filename,'{}/long/df'.format(path))
+        df_short = pd.read_hdf(filename,'{}/short/df'.format(path))
+        TripleOrbitPopulation_FromDF.__init__(self, df_long, df_short)
+        #self.orbpop_long = OrbitPopulation_FromH5(filename,'{}/long'.format(path))
+        #self.orbpop_short = OrbitPopulation_FromH5(filename,'{}/short'.format(path))
         
             
 class OrbitPopulation(object):
@@ -356,14 +366,20 @@ class OrbitPopulation(object):
         """
         self.dataframe.to_hdf(filename,'{}/df'.format(path))
 
-class OrbitPopulation_FromH5(OrbitPopulation):
+class OrbitPopulation_FromDF(OrbitPopulation):
+    def __init__(self, df):
+        """Creates ``OrbitPopulation`` from DataFrame
+        """
+        OrbitPopulation.__init__(self, df['M1'], df['M2'], df['P'],
+                                 ecc=df['ecc'], mean_anomaly=df['mean_anomaly'],
+                                 obsx=df['obsx'], obsy=df['obsy'], obsz=df['obsz']) 
+
+class OrbitPopulation_FromH5(OrbitPopulation_FromDF):
     def __init__(self,filename,path=''):
         """Restores ``OrbitPopulation`` from saved .h5 file.
         """
         df = pd.read_hdf(filename,'{}/df'.format(path))
-        OrbitPopulation.__init__(self, df['M1'], df['M2'], df['P'],
-                                 ecc=df['ecc'], mean_anomaly=df['mean_anomaly'],
-                                 obsx=df['obsx'], obsy=df['obsy'], obsz=df['obsz']) 
+        OrbitPopulation_FromDF.__init__(self, df)
 
         
 class BinaryGrid(OrbitPopulation):
