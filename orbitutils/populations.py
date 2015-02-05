@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from plotutils import setfig
-from hashutils import hashcombine, hasharray
+from hashutils import hashcombine, hashdf
 
 from astropy import units as u
 from astropy.units.quantity import Quantity
@@ -275,7 +275,7 @@ class OrbitPopulation(object):
         return OrbitPopulation_FromDF(newdf)
 
     def __hash__(self):
-        return hasharray(self.dataframe)
+        return hashdf(self.dataframe)
     
     @property
     def Rsky(self):
