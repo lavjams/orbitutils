@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from plotutils import setfig
+from hashutils import hashcombine, hasharray
 
 from astropy import units as u
 from astropy.units.quantity import Quantity
@@ -78,7 +79,9 @@ class TripleOrbitPopulation(object):
                                            mean_anomaly=mean_anomaly_short,
                                            obsx=obsx_short,obsy=obsy_short,obsz=obsz_short)
 
-
+    def __hash__(self):
+        return hashcombine(self.orbpop_long, self.orbpop_short)
+        
     @property
     def RV(self):
         """Instantaneous RV of star 1 with respect to system center-of-mass
@@ -270,7 +273,10 @@ class OrbitPopulation(object):
         newdf = pd.concat((self.dataframe, other.dataframe))
 
         return OrbitPopulation_FromDF(newdf)
-        
+
+    def __hash__(self):
+        return hasharray(self.dataframe)
+    
     @property
     def Rsky(self):
         """Projected sky separation of stars
